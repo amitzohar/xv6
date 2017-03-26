@@ -75,9 +75,49 @@ runcmd(struct cmd *cmd)
     ecmd = (struct execcmd*)cmd;
     if(ecmd->argv[0] == 0)
       exit();
-    exec(ecmd->argv[0], ecmd->argv);
-    printf(2, "exec %s failed\n", ecmd->argv[0]);
-    break;
+	if (ecmd->argv[0][0] == '/') {
+		exec(ecmd->argv[0], ecmd->argv);
+		printf(2, "exec %s failed\n", ecmd->argv[0]);
+		break;
+	} else {
+		int res = exec(ecmd->argv[0], ecmd->argv);
+		if (res == -1) {
+			int path = open("/path", O_RDONLY);
+			if (path < 0) {
+				printf(2, "Failed to find path!\n");
+				break;
+			}
+			char buf[1024] = {0};
+			int len = read(path, buf, 1024);
+			if (len < 0) {
+				printf(2, "Failed to read from path!");
+				break;
+			}
+			char tempPath[1024] = {0};
+			char cmd[1024] = {0};
+			int j = 0;
+			int i = 0;
+			for (i = 0; i < len; i++) {
+				if (buf[i] == ':') {
+					strcpy(cmd, tempPath);
+					strcpy(cmd + strlen(tempPath), ecmd->argv[0]);
+					int res = exec(cmd, ecmd->argv);
+					if (res != -1) {
+						break;
+					}
+					j = 0;
+					memset(tempPath, 0, 1024);
+					memset(cmd, 0, 1024);
+				}
+				else {
+					tempPath[j] = buf[i];
+					j++;
+				}
+			}
+			printf(2, "exec %s failed\n", ecmd->argv[0]);
+			break;
+		}
+	}
 
   case REDIR:
     rcmd = (struct redircmd*)cmd;
