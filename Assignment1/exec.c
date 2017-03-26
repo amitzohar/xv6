@@ -6,12 +6,17 @@
 #include "defs.h"
 #include "x86.h"
 #include "elf.h"
-
+#include "syscall.h"
 void 
 pseudo_main(int (*entry)(int, char**), int argc, char **argv) 
 {
-	int res = entry(argc, argv);
-	exit(res);
+  entry(argc, argv);
+  __asm__ (
+          "pushl %eax\n\t" // return value
+          "pushl $0\n\t" // ret addr - we don't give a shit about that
+          "movl $2, %eax\n\t" // sys_exit index
+          "int $64"); // system call
+
 }
 
 int
@@ -87,9 +92,9 @@ exec(char *path, char **argv)
     sp = (sp - (strlen(argv[argc]) + 1)) & ~3;
     if(copyout(pgdir, sp, argv[argc], strlen(argv[argc]) + 1) < 0)
       goto bad;
-    ustack[3+argc] = sp;
+    ustack[4+argc] = sp;
   }
-  ustack[3+argc] = 0;
+  ustack[4+argc] = 0;
 
   ustack[0] = 0xffffffff;  // fake return PC
   ustack[1] = elf.entry;
@@ -110,7 +115,7 @@ exec(char *path, char **argv)
   oldpgdir = proc->pgdir;
   proc->pgdir = pgdir;
   proc->sz = sz;
-  proc->tf->eip = pointer_pseudo_main;
+  proc->tf->eip = pointer_pseudo_main;  // main
   proc->tf->esp = sp;
   switchuvm(proc);
   freevm(oldpgdir);
@@ -124,4 +129,5 @@ exec(char *path, char **argv)
     end_op();
   }
   return -1;
+
 }

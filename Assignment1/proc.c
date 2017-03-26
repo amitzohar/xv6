@@ -188,6 +188,7 @@ exit(int status)
 {
   struct proc *p;
   int fd;
+  cprintf("status: %d\n", status);
 
   if(proc == initproc)
     panic("init exiting");
