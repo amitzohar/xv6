@@ -48,14 +48,12 @@ main(int argc, char *argv[])
   5f:	c7 04 24 01 00 00 00 	movl   $0x1,(%esp)
   66:	89 44 24 08          	mov    %eax,0x8(%esp)
   6a:	e8 81 03 00 00       	call   3f0 <printf>
-  exit();
-  6f:	e8 2e 02 00 00       	call   2a2 <exit>
-  74:	66 90                	xchg   %ax,%ax
-  76:	66 90                	xchg   %ax,%ax
-  78:	66 90                	xchg   %ax,%ax
-  7a:	66 90                	xchg   %ax,%ax
-  7c:	66 90                	xchg   %ax,%ax
-  7e:	66 90                	xchg   %ax,%ax
+  exit(0);
+  6f:	c7 04 24 00 00 00 00 	movl   $0x0,(%esp)
+  76:	e8 27 02 00 00       	call   2a2 <exit>
+  7b:	66 90                	xchg   %ax,%ax
+  7d:	66 90                	xchg   %ax,%ax
+  7f:	90                   	nop
 
 00000080 <strcpy>:
 #include "user.h"
