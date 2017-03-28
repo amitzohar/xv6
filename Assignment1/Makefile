@@ -180,6 +180,7 @@ UPROGS=\
 	_wc\
 	_zombie\
 	_exittest\
+	_policy\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

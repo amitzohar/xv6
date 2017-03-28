@@ -12,6 +12,8 @@ struct {
   struct proc proc[NPROC];
 } ptable;
 
+uint g_policy = 0;
+
 static struct proc *initproc;
 
 int nextpid = 1;
@@ -546,4 +548,14 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+void
+priority(int pr)
+{
+	proc->ntickets = pr;
+}
+
+void setp(int p) {
+	g_policy = p;
 }
