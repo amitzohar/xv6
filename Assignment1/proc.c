@@ -26,6 +26,22 @@ pinit(void)
   initlock(&ptable.lock, "ptable");
 }
 
+unsigned int randNum(void)
+{
+	static unsigned int z1 = 12345, z2 = 12345, z3 = 12345, z4 = 12345;
+	unsigned int b;
+	b = ((z1 << 6) ^ z1) >> 13;
+	z1 = ((z1 & 4294967294U) << 18) ^ b;
+	b = ((z2 << 2) ^ z2) >> 27;
+	z2 = ((z2 & 4294967288U) << 2) ^ b;
+	b = ((z3 << 13) ^ z3) >> 21;
+	z3 = ((z3 & 4294967280U) << 7) ^ b;
+	b = ((z4 << 3) ^ z4) >> 12;
+	z4 = ((z4 & 4294967168U) << 13) ^ b;
+	b = z1 ^ z2 ^ z3 ^ z4;
+	return (b);
+}
+
 //PAGEBREAK: 32
 // Look in the process table for an UNUSED proc.
 // If found, change state to EMBRYO and initialize
@@ -72,6 +88,12 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+
+  p->status = -1;
+
+  // TODO: Policy
+  cprintf("Setting ntickets\n");
+  p->ntickets = 1;
 
   return p;
 }
@@ -188,7 +210,7 @@ exit(int status)
 {
   struct proc *p;
   int fd;
-  cprintf("status: %d\n", status);
+  cprintf("exit status: %d\n", status);
 
   if(proc == initproc)
     panic("init exiting");
@@ -274,6 +296,7 @@ wait(int *status)
   }
 }
 
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -290,12 +313,46 @@ scheduler(void)
   for(;;){
     // Enable interrupts on this processor.
     sti();
+	
+	// Count the total number of ntickets
+	uint total_tickets = 0;
+	acquire(&ptable.lock);
+
+	for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+		if (p->state != RUNNABLE)
+			continue;
+		if (p->ntickets != 1) {
+			cprintf("NO");
+		}
+		total_tickets += p->ntickets;
+	}
+	if (total_tickets == 0) {
+		release(&ptable.lock);
+		continue;
+	}
+
+	if (total_tickets > 1) {
+		cprintf("total tickets: %d\n", total_tickets);
+	}
+	uint ticket = randNum();
+	ticket = ticket % total_tickets;
+	
+	if (total_tickets > 1) {
+		cprintf("Ticket allocated: %d\n", ticket);
+	}
 
     // Loop over process table looking for process to run.
-    acquire(&ptable.lock);
+	//uint current_ticket = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
+	  //current_ticket += p->ntickets;
+
+	  //cprintf("Current ticket: %d", current_ticket);
+	  
+	  //if (ticket >= current_ticket) {
+		  //continue;
+	  //}
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
@@ -310,6 +367,7 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       proc = 0;
     }
+
     release(&ptable.lock);
 
   }
